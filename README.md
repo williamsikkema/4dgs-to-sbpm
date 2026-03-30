@@ -1,20 +1,64 @@
-# 4DGS to SBPM
+# 4DGS to SBPM — Multiview face motion pipeline
 
-Minimal static page: webcam feed with **MediaPipe Face Mesh** overlays (dense mesh + eyes + face oval). Use the **Face markers** checkbox to turn face detection and drawing on or off (when off, inference is skipped and the overlay is cleared).
+End-to-end starter codebase: **LED wand temporal sync** → **synchronized calibrated dataset** → **canonical 3D Gaussians + time-conditioned deformation** → **position / velocity / acceleration export**.
 
-## Run locally
+| Area | Doc |
+|------|-----|
+| Sync (detection, offsets) | [docs/README_sync.md](docs/README_sync.md) |
+| Training (dynamic GS) | [docs/README_train.md](docs/README_train.md) |
+| Export & derivatives | [docs/README_export.md](docs/README_export.md) |
+| Firmware (LED wand) | [firmware/wand_led/README.md](firmware/wand_led/README.md) |
+| Dataset format | [docs/dataset_format.md](docs/dataset_format.md) |
+| Browser MediaPipe demo | [web/](web/) — `cd web && python3 -m http.server 8080` |
 
-Browsers require a **secure context** for the camera. Opening the file as `file://` often blocks `getUserMedia`. Serve the folder over HTTP:
+## Install
 
 ```bash
 cd 4dgs-to-sbpm
-python3 -m http.server 8080
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+# Optional full splat renderer:
+# pip install -e ".[gsplat]"
 ```
 
-Then open [http://localhost:8080](http://localhost:8080) and allow camera access.
+## Pipeline (CLI)
 
-If you are not on `localhost`, you may need HTTPS for camera permissions.
+```bash
+# 1) Detect LED in each video → tracks NPZ
+face-mc-run-led-detection --config configs/sync.yaml
 
-## Stack
+# 2) Estimate per-camera time offsets → offsets.json + plots
+face-mc-run-sync --config configs/sync.yaml
 
-- [MediaPipe Face Mesh](https://google.github.io/mediapipe/solutions/face_mesh.html) via jsDelivr CDN (`face_mesh`, `camera_utils`, `drawing_utils`)
+# 3) Build synchronized image dataset + manifest
+face-mc-build-dataset --config configs/dataset.yaml
+
+# 4) Train dynamic Gaussian model
+face-mc-train --config configs/train.yaml
+
+# 5) Export trajectories (FD + optional autograd derivatives)
+face-mc-export --config configs/export.yaml
+
+# 6) Compare finite differences vs autograd
+face-mc-compare-derivatives --config configs/export.yaml
+
+# 7) Plots / diagnostics
+face-mc-visualize --config configs/export.yaml
+```
+
+## Design notes
+
+- **Sync before training:** Global timestamps are required so all cameras contribute to one coherent dynamic model; wand gives observability of `t_k → t_global`.
+- **Canonical Gaussians:** A fixed set of 3D primitives with identity over time; motion is a **deformation field** `Δx(x_canon, t)` so each index `i` is a dense tracked point.
+- **Fixed neighbor graph:** `k`-NN in canonical space stabilizes relative motion regularization; neighborhoods do not change every frame (see `NeighborGraph`).
+
+## Tests
+
+```bash
+pytest tests/ -q
+```
+
+## License
+
+Apache-2.0 (align with common CV stack); adjust as needed.

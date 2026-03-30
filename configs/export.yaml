@@ -1,0 +1,15 @@
+checkpoint: data/runs/exp1/checkpoint.pt
+output_dir: data/export_out
+
+num_time_samples: 64
+derivative_method: both
+finite_diff_dt_scale: 1.0
+savgol_window: 0
+savgol_poly: 2
+
+save_npy: true
+save_csv_summary: true
+save_ply_snapshots: false
+ply_times: [0.0, 0.5, 1.0]
+
+gaussian_subset_path: null

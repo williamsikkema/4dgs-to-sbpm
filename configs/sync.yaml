@@ -1,0 +1,39 @@
+# LED detection and multi-camera sync
+calibration_path: data/calibration/cameras.json
+output_dir: data/sync_out
+
+videos:
+  "0": data/raw/cam0.mp4
+  "1": data/raw/cam1.mp4
+
+fps_assumed: 60.0
+reference_camera_id: "0"
+
+led_detection:
+  grayscale: true
+  channel: "g"
+  threshold: 240
+  min_area_px: 3
+  max_area_px: 50000
+  morphology_open: 0
+  morphology_close: 0
+  subpixel_gaussian_fit: false
+  color_mask_hsv: null
+
+coarse_sync:
+  max_lag_frames: 120
+  signals:
+    - x
+    - y
+    - speed
+    - brightness
+  combine: median
+
+refinement:
+  use_affine_time: false
+  huber_delta_px: 2.0
+  grid_step_frames: 2
+  max_nfev: 200
+
+diagnostics:
+  save_plots: true

@@ -1,0 +1,18 @@
+# Build synchronized dataset from videos + offsets
+calibration_path: data/calibration/cameras.json
+offsets_path: data/sync_out/offsets.json
+reference_camera_id: "0"
+output_root: data/dataset_v1
+
+videos:
+  "0": data/raw/cam0.mp4
+  "1": data/raw/cam1.mp4
+
+# Global time samples: either uniform fps or explicit list
+target_fps: 30.0
+time_start_global: 0.0
+time_end_global: null
+
+undistort_images: true
+image_format: png
+manifest_name: manifest.jsonl

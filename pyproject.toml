@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "face-mc-gs"
+version = "0.1.0"
+description = "Multiview LED sync, dynamic Gaussian splatting, trajectory export"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "scipy>=1.11",
+  "opencv-python-headless>=4.8",
+  "torch>=2.0",
+  "PyYAML>=6.0",
+  "matplotlib>=3.7",
+  "tqdm>=4.65",
+  "pillow>=10.0",
+]
+
+[project.optional-dependencies]
+gsplat = ["gsplat>=1.0"]
+dev = ["pytest>=7.4", "ruff>=0.1"]
+
+[project.scripts]
+face-mc-run-led-detection = "face_mc_gs.cli.run_led_detection:main"
+face-mc-run-sync = "face_mc_gs.cli.run_sync_estimation:main"
+face-mc-build-dataset = "face_mc_gs.cli.build_dataset:main"
+face-mc-train = "face_mc_gs.cli.train_dynamic_gs:main"
+face-mc-export = "face_mc_gs.cli.export_trajectories:main"
+face-mc-visualize = "face_mc_gs.cli.visualize_motion:main"
+face-mc-compare-derivatives = "face_mc_gs.cli.compare_derivatives:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

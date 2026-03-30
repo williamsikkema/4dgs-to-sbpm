@@ -1,1 +1,14 @@
 .DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+*.pt
+data/raw/
+data/sync_out/
+data/dataset_*/
+data/runs/
+data/export_out/

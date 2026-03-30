@@ -1,0 +1,44 @@
+# Dynamic Gaussian training
+dataset_manifest: data/dataset_v1/manifest.jsonl
+output_dir: data/runs/exp1
+
+device: cuda
+seed: 0
+
+# Normalized time in [-1, 1] over sequence
+time_normalize: true
+
+num_gaussians: 4096
+sh_degree: 0
+
+deformation:
+  hidden_dim: 128
+  num_layers: 4
+  posenc_L: 6
+  delta_rotation: false
+  delta_scale: false
+
+neighbor_k: 8
+rebuild_neighbors_every: 0
+
+training:
+  batch_size: 4
+  num_epochs: 50
+  lr: 0.001
+  weight_decay: 0.0
+
+loss:
+  w_rgb: 1.0
+  w_ssim: 0.0
+  w_mask: 0.0
+  w_temporal: 0.1
+  w_neighbor: 0.05
+  w_scale_reg: 0.001
+  w_opacity_reg: 0.01
+
+renderer: simple
+# renderer: gsplat   # requires pip install '.[gsplat]'
+
+image_size: [256, 256]
+
+checkpoint_every: 10
