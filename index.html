@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4DGS to SBPM — Face mesh</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, sans-serif;
+      background: #1a1a1e;
+      color: #e8e8ec;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+    h1 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin: 0 0 0.75rem;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .toolbar label {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .wrap {
+      position: relative;
+      width: min(100%, 960px);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    #video {
+      display: block;
+      width: 100%;
+      height: auto;
+      vertical-align: middle;
+    }
+    #overlay {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .hint {
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      color: #888;
+      max-width: 40rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>4DGS to SBPM — webcam + MediaPipe face mesh</h1>
+  <div class="toolbar">
+    <label>
+      <input type="checkbox" id="faceToggle" checked />
+      Face markers
+    </label>
+  </div>
+  <div class="wrap">
+    <video id="video" playsinline></video>
+    <canvas id="overlay"></canvas>
+  </div>
+  <p class="hint">Serve this folder over HTTP (e.g. <code>python3 -m http.server 8080</code>) and open <code>localhost</code>. Uncheck “Face markers” to hide overlay and pause face inference.</p>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('overlay');
+      const ctx = canvas.getContext('2d');
+      const faceToggle = document.getElementById('faceToggle');
+      let faceEnabled = faceToggle.checked;
+
+      function syncCanvasSize() {
+        const w = video.videoWidth;
+        const h = video.videoHeight;
+        if (!w || !h) return;
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+      }
+
+      const faceMesh = new FaceMesh({
+        locateFile: function (file) {
+          return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + file;
+        }
+      });
+      faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+
+      faceMesh.onResults(function (results) {
+        syncCanvasSize();
+        ctx.save();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (!faceEnabled) {
+          ctx.restore();
+          return;
+        }
+        if (results.multiFaceLandmarks) {
+          for (const landmarks of results.multiFaceLandmarks) {
+            drawConnectors(ctx, landmarks, FACEMESH_TESSELATION, {
+              color: '#C0C0C070',
+              lineWidth: 1
+            });
+            drawConnectors(ctx, landmarks, FACEMESH_RIGHT_EYE, { color: '#E85D4C', lineWidth: 1 });
+            drawConnectors(ctx, landmarks, FACEMESH_LEFT_EYE, { color: '#4C8FE8', lineWidth: 1 });
+            drawConnectors(ctx, landmarks, FACEMESH_FACE_OVAL, { color: '#E0E0E0', lineWidth: 1 });
+          }
+        }
+        ctx.restore();
+      });
+
+      faceToggle.addEventListener('change', function () {
+        faceEnabled = faceToggle.checked;
+        if (!faceEnabled) {
+          syncCanvasSize();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      });
+
+      const camera = new Camera(video, {
+        onFrame: async function () {
+          syncCanvasSize();
+          if (faceEnabled) {
+            await faceMesh.send({ image: video });
+          } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+        },
+        width: 1280,
+        height: 720
+      });
+
+      video.addEventListener('loadedmetadata', syncCanvasSize);
+      window.addEventListener('resize', syncCanvasSize);
+
+      camera.start().catch(function (err) {
+        console.error(err);
+        document.querySelector('.hint').textContent =
+          'Camera error: ' + err.message + ' — use HTTPS or localhost and allow camera access.';
+      });
+    })();
+  </script>
+</body>
+</html>
